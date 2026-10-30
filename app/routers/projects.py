@@ -52,3 +52,26 @@ def seed_project(db: Session = Depends(get_db)):
     db.refresh(project)
 
     return project
+
+@router.get("/{slug}",response_model=ProjectResponse)
+def get_project_by_slug(
+    slug:str,
+    db:Session = Depends(get_db)
+                        ):
+    statement = select(Project).where(
+        Project.slug == slug,
+        Project.is_published.is_(True)
+    )
+    
+    project = db.scalar(statement)
+    
+    if project is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found"
+        )
+        
+    return project
+
+
+
