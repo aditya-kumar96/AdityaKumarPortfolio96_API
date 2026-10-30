@@ -1,0 +1,12 @@
+# Environment
+.env
+.PortfolioEnv/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store
