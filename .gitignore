@@ -10,3 +10,7 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Application logs
+logs/
+*.log

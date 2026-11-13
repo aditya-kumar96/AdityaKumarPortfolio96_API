@@ -1,77 +1,59 @@
-from fastapi import APIRouter,Depends,HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from typing import Literal
 
 from app.db.session import get_db
 from app.models.project import Project
-from app.schemas.project import ProjectResponse
+from app.schemas.project import ProjectResponse, ProjectCreate, ProjectUpdate
+from app.services import project_service
+
+router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
 
-router = APIRouter(prefix="/api/v1/projects",tags=["Projects"])
-
-
-@router.get("/",response_model=list[ProjectResponse])
-def get_projects(db:Session = Depends(get_db)):
-    statement=(
-        select(Project)
-        .where(Project.is_published.is_(True))
-        .order_by(Project.featured.desc(),Project.id.desc())
-        
-    )
-    
-    return db.scalars(statement).all()
-
-
-@router.post("/seed", response_model=ProjectResponse)
-def seed_project(db: Session = Depends(get_db)):
-    existing_project = db.scalar(
-        select(Project).where(Project.slug == "stillalive-sos")
-    )
-
-    if existing_project:
-        raise HTTPException(
-            status_code=409,
-            detail="Project already exists",
+@router.get("/", response_model=list[ProjectResponse])
+def get_projects(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
+    featured: bool | None = None,
+    search: str | None = Query(default=None, min_length=1, max_length=150),
+    sort_by: Literal["title", "id", "featured"] | None = None,
+    order: Literal["asc", "desc"] = "asc",
+    db: Session = Depends(get_db)
+):
+    return project_service.get_all_published_projects(
+        db=db, 
+        skip=skip, 
+        limit=limit,
+        featured=featured,
+        search=search,
+        sort_by=sort_by,
+        order=order
         )
 
-    project = Project(
-        title="StillAlive-SOS",
-        slug="stillalive-sos",
-        description=(
-            "A personal safety check-in application "
-            "with a React Native mobile app and FastAPI backend."
-        ),
-        tech_stack="React Native, FastAPI, Python, PostgreSQL",
-        github_url="https://github.com/aditya-kumar96/StillAliveSOS_mobile",
-        featured=True,
-        is_published=True,
-    )
 
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-
-    return project
-
-@router.get("/{slug}",response_model=ProjectResponse)
-def get_project_by_slug(
-    slug:str,
-    db:Session = Depends(get_db)
-                        ):
-    statement = select(Project).where(
-        Project.slug == slug,
-        Project.is_published.is_(True)
-    )
-    
-    project = db.scalar(statement)
-    
+@router.get("/{slug}", response_model=ProjectResponse)
+def get_project_by_slug(slug: str, db: Session = Depends(get_db)):
+    project = project_service.get_project_by_slug(db, slug)
     if project is None:
         raise HTTPException(
-            status_code=404,
-            detail="Project not found"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Project not found"
         )
-        
     return project
 
 
+@router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+def create_project(project_data: ProjectCreate, db: Session = Depends(get_db)):
+    return project_service.create_project(db, project_data)
 
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+def update_project(
+    project_id: int, project_data: ProjectUpdate, db: Session = Depends(get_db)
+):
+    return project_service.update_project(db, project_id, project_data)
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project_service.delete_project(db, project_id)
