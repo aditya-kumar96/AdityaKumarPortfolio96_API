@@ -6,6 +6,7 @@ from app.db.session import Base
 from app.core.config import settings
 from sqlalchemy import create_engine
 from app.models.project import Project
+from app.models.admin import Admin
 
 from alembic import context
 
