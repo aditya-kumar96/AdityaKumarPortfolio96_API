@@ -1,10 +1,11 @@
-from app.core.logging import configure_logging,logger
+from app.core.logging import configure_logging, logger
 from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.session import engine
 from app.routers.projects import router as projects_router
+from app.routers.auth import router as auth_router
 
 configure_logging()
 
@@ -14,7 +15,7 @@ app = FastAPI(
 )
 logger.info("Portfolio API application initialized")
 app.include_router(projects_router)
-
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.get("/")

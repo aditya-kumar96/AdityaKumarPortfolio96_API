@@ -7,6 +7,7 @@ from app.core.config import settings
 from sqlalchemy import create_engine
 from app.models.project import Project
 from app.models.admin import Admin
+from app.models.admin_session import AdminSession
 
 from alembic import context
 
